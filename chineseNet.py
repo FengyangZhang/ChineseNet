@@ -23,7 +23,7 @@ data_path = "../data/matrices.txt"
 label_path = "../data/classes.txt"
 
 # declare some hyperparameters
-batch_size = 5000
+batch_size = 5
 image_height = 32
 image_width = 32
 num_channels = 8
@@ -65,7 +65,6 @@ if(args["test_mode"] <= 0):
     totalLabels = labels.readline().strip('\t').split('\t')
     totalLabels = np.asarray(totalLabels, dtype='int32')
     print("[INFO] finished loading labels from %s" %label_path)
-    totalData, totalLabels = shuffle(totalData, totalLabels)
     # restrict data to [0, 1]
     totalData = totalData / 255
     train_size =(int)(0.9 * totalData.shape[0])
