@@ -19,8 +19,8 @@ ap.add_argument("-i", "--image_path", type=str,
     help="(optional) path to the image if you are using test mode" )
 args = vars(ap.parse_args())
 
-data_path = "data/matrices.txt"
-label_path = "data/classes.txt"
+data_path = "../data/matrices.txt"
+label_path = "../data/classes.txt"
 
 # declare some hyperparameters
 batch_size = 5
@@ -65,6 +65,7 @@ if(args["test_mode"] <= 0):
     totalLabels = labels.readline().strip('\t').split('\t')
     totalLabels = np.asarray(totalLabels, dtype='int32')
     print("[INFO] finished loading labels from %s" %label_path)
+    totalData, totalLabels = shuffle(totalData, totalLabels)
     # restrict data to [0, 1]
     totalData = totalData / 255
     train_size =(int)(0.9 * totalData.shape[0])
@@ -229,7 +230,7 @@ with tf.Session(graph=graph) as session:
                     print('[INFO] Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
                     print('[INFO] Test accuracy: %.1f%%' % accuracy(test_prediction.eval(session=session), testLabels))
     else:
-        print('[INFO] test prediction: mostlikely to be %s' %np.argmax(test_prediction.eval(session=session)))
+        print('[INFO] test prediction: mostlikely to be %s' %np.argmax(test_prediction.eval(session=session))
     if(args["save_model"] > 0):
         print('[INFO] saving model to file...')
         save_path = saver.save(session, args["model_path"]) 
