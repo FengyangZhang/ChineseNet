@@ -28,7 +28,7 @@ image_height = 32
 image_width = 32
 num_channels = 8
 patch_size = 3
-conv_depth = (50, 100, 150, 200, 250, 300, 350, 400)
+depth = (50, 100, 150, 200, 250, 300, 350, 400)
 num_hidden = (900, 200)
 keep_prob = (1.0, 0.9, 0.9, 0.8, 0.8, 0.7, 0.7, 0.6, 0.5, 1.0)
 num_labels = 3755
@@ -43,8 +43,8 @@ def reformat(dataset, labels):
 # shuffle the data and label accordingly
 def shuffle(dataset, labels):
     perm = np.random.permutation(len(dataset))
-    dataset = dataset(perm)
-    labels = labels(perm)
+    dataset = dataset[perm]
+    labels = labels[perm]
     return dataset, labels
 
 # calculate training or testing accuracy
@@ -58,14 +58,14 @@ if(args["test_mode"] <= 0):
     print("[INFO] loading features...")
     features = open(data_path)
     totalData = features.readline().strip('\t').split('\t')
-    totalData = np.asarray(totalData)
+    totalData = np.asarray(totalData, dtype='float32')
     print("[INFO] finished loading features from %s" %data_path)
     print("[INFO] loading labels...")
     labels = open(label_path)
     totalLabels = labels.readline().strip('\t').split('\t')
     totalLabels = np.asarray(totalLabels, dtype='int32')
     print("[INFO] finished loading labels from %s" %label_path)
-    totalData, totalLabels = shuffle(totalData, totalLabels)
+    totalData, totalLabels = reformat(totalData, totalLabels)
     # restrict data to [0, 1]
     totalData = totalData / 255
     train_size =(int)(0.9 * totalData.shape[0])
@@ -91,7 +91,7 @@ with graph.as_default():
 
     # Input data.
     tf_train_dataset = tf.placeholder(
-        tf.int32, shape=(batch_size, image_height, image_width, num_channels))
+        tf.float32, shape=(batch_size, image_height, image_width, num_channels))
     tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
 
     tf_test_dataset = tf.constant(testData)
@@ -165,7 +165,8 @@ with graph.as_default():
         #                 name='norm1')
 
         # fc layers
-        reshape = tf.reshape(pool4, [pool.shape[0], -1])
+        shape = pool4.get_shape().as_list()
+        reshape = tf.reshape(pool4, [shape[0], shape[1]*shape[2]*shape[3]])
         hidden9 = tf.nn.relu(tf.matmul(reshape, fc_weights[0]) + fc_biases[0])
         hidden9 = tf.nn.dropout(hidden9, keep_prob[8])
         
@@ -230,7 +231,7 @@ with tf.Session(graph=graph) as session:
                     print('[INFO] Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
                     print('[INFO] Test accuracy: %.1f%%' % accuracy(test_prediction.eval(session=session), testLabels))
     else:
-        print('[INFO] test prediction: mostlikely to be %s' %np.argmax(test_prediction.eval(session=session))
+        print('[INFO] test prediction: mostlikely to be %s' %np.argmax(test_prediction.eval(session=session)))
     if(args["save_model"] > 0):
         print('[INFO] saving model to file...')
         save_path = saver.save(session, args["model_path"]) 
