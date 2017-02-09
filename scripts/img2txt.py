@@ -15,19 +15,18 @@ def main(argv):
     is_jpg = re.compile(r'.+?\.jpg')
 
     print('generating matrices...')
-    counter = 0
+    #counter = 0
     if (len(img_srcs)>0):
         for img_src in img_srcs:
             if(is_jpg.match(img_src)):
-                counter = counter + 1
-                if(counter > 10):
-                    break
+                #counter = counter + 1
+                #if(counter > 10):
+                #    break
                 img_src = img_dir + img_src
                 img_mat = np.array(Image.open(img_src))
                 img_mat = img2directMap(img_mat)
-                img_row = '\t'.join('\t'.join('\t'.join('%d' %x for x in y) for y in z) for z in img_mat)
+                img_row = '\t'.join('\t'.join('\t'.join('%d' %x for x in y) for y in z) for z in img_mat) + '\t'
                 file.write(img_row)
-                file.write('\t')
     print('matrices generated.')
 
 def img2directMap(img):
