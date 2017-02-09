@@ -8,16 +8,20 @@ import math
 import re
 
 def main(argv):
-    img_dir = "../data/chars_generated/"
+    img_dir = "../data/chars_orig/"
     img_srcs = os.listdir(img_dir)
     file=open('../data/matrices.txt','w')
     # leave files that are not jpg files
     is_jpg = re.compile(r'.+?\.jpg')
 
     print('generating matrices...')
+    counter = 0
     if (len(img_srcs)>0):
         for img_src in img_srcs:
             if(is_jpg.match(img_src)):
+                counter = counter + 1
+                if(counter > 10):
+                    break
                 img_src = img_dir + img_src
                 img_mat = np.array(Image.open(img_src))
                 img_mat = img2directMap(img_mat)
