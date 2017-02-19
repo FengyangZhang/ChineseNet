@@ -3,7 +3,7 @@ import numpy as np
 import argparse
 from PIL import Image
 from time import clock
-
+import tables
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
@@ -19,13 +19,13 @@ ap.add_argument("-i", "--image_path", type=str,
     help="(optional) path to the image if you are using test mode" )
 args = vars(ap.parse_args())
 
-data_path = "../data/matrices.txt"
-label_path = "../data/classes.txt"
+data_path = "./trainData.hdf5"
+label_path = "./trainLabel.hdf5"
 
 # declare some hyperparameters
-batch_size = 5
-image_height = 32
-image_width = 32
+batch_size = 800
+image_height = 48
+image_width = 48
 num_channels = 8
 patch_size = 3
 depth = (50, 100, 150, 200, 250, 300, 350, 400)
@@ -37,7 +37,8 @@ num_labels = 3755
 def reformat(dataset, labels):
     dataset = dataset.reshape(
         (-1, image_height, image_width, num_channels)).astype(np.float32)
-    labels = (np.arange(num_labels) == labels[:,None]).astype(np.int32)
+    labels = (np.arange(num_labels) == labels[:,None]).astype(np.int32).reshape((-1, 3755))
+    print(labels.shape)
     return dataset, labels
 
 # shuffle the data and label accordingly
@@ -56,33 +57,43 @@ def accuracy(predictions, labels):
 if(args["test_mode"] <= 0):
     print("[INFO] using training mode")
     print("[INFO] loading features...")
-    features = open(data_path)
-    totalData = features.readline().strip('\t').split('\t')
-    totalData = np.asarray(totalData, dtype='float32')
-    print("[INFO] finished loading features from %s" %data_path)
+    data_file = tables.open_file(data_path, mode='r')
     print("[INFO] loading labels...")
-    labels = open(label_path)
-    totalLabels = labels.readline().strip('\t').split('\t')
-    totalLabels = np.asarray(totalLabels, dtype='int32')
-    print("[INFO] finished loading labels from %s" %label_path)
-    totalData, totalLabels = reformat(totalData, totalLabels)
-    # restrict data to [0, 1]
-    totalData = totalData / 255
-    train_size =(int)(0.9 * totalData.shape[0])
-    train_index = np.random.choice(totalData.shape[0], train_size, replace=False)
-    test_index = np.asarray(list(set(np.arange(totalData.shape[0])) - set(train_index)))
-    trainData = totalData[train_index]
-    testData = totalData[test_index]
-    trainLabels = totalLabels[train_index]
-    testLabels = totalLabels[test_index]
-
-    print('[INFO] Training set', trainData.shape, trainLabels.shape)
-    print('[INFO] Test set', testData.shape, testLabels.shape)
-
+    label_file = tables.open_file(label_path, mode='r')
+    testData = data_file.root.trainData[918970:919970]
+    testLabels = label_file.root.trainLabel[918970:919970]
+    testData, testLabels = reformat(testData, testLabel)
+    print(testLabel[:,None])
+#if(args["test_mode"] <= 0):
+#    print("[INFO] using training mode")
+#    print("[INFO] loading features...")
+#    features = open(data_path)
+#    totalData = features.readline().strip('\t').split('\t')
+#    totalData = np.asarray(totalData, dtype='float32')
+#    print("[INFO] finished loading features from %s" %data_path)
+#    print("[INFO] loading labels...")
+#    labels = open(label_path)
+#    totalLabels = labels.readline().strip('\t').split('\t')
+#    totalLabels = np.asarray(totalLabels, dtype='int32')
+#    print("[INFO] finished loading labels from %s" %label_path)
+#    totalData, totalLabels = reformat(totalData, totalLabels)
+#    # restrict data to [0, 1]
+#    totalData = totalData / 255
+#    train_size =(int)(0.9 * totalData.shape[0])
+#    train_index = np.random.choice(totalData.shape[0], train_size, replace=False)
+#    test_index = np.asarray(list(set(np.arange(totalData.shape[0])) - set(train_index)))
+#    trainData = totalData[train_index]
+#    testData = totalData[test_index]
+#    trainLabels = totalLabels[train_index]
+#    testLabels = totalLabels[test_index]
+#
+#    print('[INFO] Training set', trainData.shape, trainLabels.shape)
+#    print('[INFO] Test set', testData.shape, testLabels.shape)
+#
 else:
     print("[INFO] using single image test mode!")
-    testData = np.array(Image.open(args["image_path"]), dtype='float32')
-    testData = np.reshape(testData, (1, image_height, image_width, num_channels))
+    #testData = np.array(Image.open(args["image_path"]), dtype='float32')
+    #testData = np.reshape(testData, (1, image_height, image_width, num_channels))
     
 # constructing stage
 graph = tf.Graph()
@@ -198,7 +209,7 @@ with graph.as_default():
 
 # running stage
 num_epochs = 10
-num_iters = 500
+num_iters = 1200
 
 with tf.Session(graph=graph) as session:
     begin = clock()
@@ -212,16 +223,18 @@ with tf.Session(graph=graph) as session:
         print('[INFO] model Initialized.')
     if(args["test_mode"] <= 0):
         for epoch in range(num_epochs):
-            trainData, trainLabels = shuffle(trainData, trainLabels)
+            #trainData, trainLabels = shuffle(trainData, trainLabels)
+            offset = 0
             for iteration in range(num_iters):
                 # stochastic gradient descent
                 #batch_index = np.random.choice(trainLabels.shape[0], batch_size)
                 #batch_data = trainData[batch_index]
                 #batch_labels = trainLabels[batch_index]
                 # batch gradient descent
-                offset = (iteration * batch_size) % (trainLabels.shape[0] - batch_size)
-                batch_data = trainData[offset:(offset + batch_size), :, :, :]
-                batch_labels = trainLabels[offset:(offset + batch_size), :]
+                offset = (iteration * batch_size)
+                batch_data = data_file.root.trainData[offset:(offset + batch_size)]
+                batch_labels = label_file.root.trainLabel[offset:(offset + batch_size)]
+                batch_data, batch_labels = reformat(batch_data, batch_labels)
                 feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
             
                 _, l, predictions = session.run(

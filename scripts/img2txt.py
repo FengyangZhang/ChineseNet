@@ -6,30 +6,44 @@ import matplotlib.pyplot as plt
 import scipy.misc 
 import math
 import re
+import tables
 
 def main(argv):
-    img_dir = "../data/chars_orig/"
+    img_dir = "../data/chars_generated/"
     img_srcs = os.listdir(img_dir)
-    file=open('../data/matrices.txt','w')
+    sys.stdout.flush()
+    print('%d images in total.'%len(img_srcs))
     # leave files that are not jpg files
     is_jpg = re.compile(r'.+?\.jpg')
 
-    print('generating matrices...')
+    print('generating training data...')
     counter = 0
     if (len(img_srcs)>0):
+        hdf5_path = 'trainData.hdf5'
+        #img_src = img_dir + img_srcs[0]
+        #img_mat = np.array(Image.open(img_src))
+        #img_mat = img2directMap(img_mat)
+
+        hdf5_file = tables.open_file(hdf5_path, mode='w')
+        filters = tables.Filters(complevel=5, complib='blosc')
+        trainData = hdf5_file.create_earray(hdf5_file.root, 'trainData',
+                                           tables.Atom.from_dtype(np.dtype('Int8')), 
+                                           shape=(0, 18432),
+                                           filters=filters,
+                                           expectedrows=919975)
+
         for img_src in img_srcs:
             if(is_jpg.match(img_src)):
                 counter = counter + 1
-                if(counter%100 == 0):
+                if(counter%5000 == 0):
                     print("processing the %dth picture..." %counter)
                 # if(counter > 500):
                 #    break
                 img_src = img_dir + img_src
                 img_mat = np.array(Image.open(img_src))
                 img_mat = img2directMap(img_mat)
-                img_row = '\t'.join('\t'.join('\t'.join('%d' %x for x in y) for y in z) for z in img_mat) + '\t'
-                file.write(img_row)
-    print('matrices generated.')
+                trainData.append(img_mat.reshape((1,18432)))
+        hdf5_file.close()
 
 def img2directMap(img):
     w_y = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
