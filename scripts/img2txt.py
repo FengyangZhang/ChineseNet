@@ -19,31 +19,32 @@ def main(argv):
     print('generating training data...')
     counter = 0
     if (len(img_srcs)>0):
-        hdf5_path = 'trainData.hdf5'
+        #hdf5_path = 'trainData.hdf5'
         #img_src = img_dir + img_srcs[0]
         #img_mat = np.array(Image.open(img_src))
         #img_mat = img2directMap(img_mat)
 
-        hdf5_file = tables.open_file(hdf5_path, mode='w')
-        filters = tables.Filters(complevel=5, complib='blosc')
-        trainData = hdf5_file.create_earray(hdf5_file.root, 'trainData',
-                                           tables.Atom.from_dtype(np.dtype('Int8')), 
-                                           shape=(0, 18432),
-                                           filters=filters,
-                                           expectedrows=919975)
+        #hdf5_file = tables.open_file(hdf5_path, mode='w')
+        #filters = tables.Filters(complevel=5, complib='blosc')
+        #trainData = hdf5_file.create_earray(hdf5_file.root, 'trainData',
+        #                                   tables.Atom.from_dtype(np.dtype('Int8')), 
+        #                                   shape=(0, 18432),
+        #                                   filters=filters,
+        #                                   expectedrows=919975)
 
         for img_src in img_srcs:
             if(is_jpg.match(img_src)):
                 counter = counter + 1
-                if(counter%5000 == 0):
-                    print("processing the %dth picture..." %counter)
-                # if(counter > 500):
-                #    break
-                img_src = img_dir + img_src
-                img_mat = np.array(Image.open(img_src))
-                img_mat = img2directMap(img_mat)
-                trainData.append(img_mat.reshape((1,18432)))
-        hdf5_file.close()
+                #if(counter%5000 == 0):
+                #    print("processing the %dth picture..." %counter)
+                if(counter > 20):
+                    break
+                #img_src = img_dir + img_src
+                #img_mat = np.array(Image.open(img_src))
+                #img_mat = img2directMap(img_mat)
+                #trainData.append(img_mat.reshape((1,18432)))
+                print(img_src)
+        #hdf5_file.close()
 
 def img2directMap(img):
     w_y = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])

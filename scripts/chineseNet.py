@@ -36,9 +36,8 @@ num_labels = 3755
 # reformat data to the intended dim
 def reformat(dataset, labels):
     dataset = dataset.reshape(
-        (-1, image_height, image_width, num_channels)).astype(np.float32)
+        (-1, num_channels, image_height, image_width)).transpose(0,2,3,1).astype(np.float32) / 255
     labels = (np.arange(num_labels) == labels[:,None]).astype(np.int32).reshape((-1, 3755))
-    print(labels.shape)
     return dataset, labels
 
 # shuffle the data and label accordingly
@@ -62,8 +61,7 @@ if(args["test_mode"] <= 0):
     label_file = tables.open_file(label_path, mode='r')
     testData = data_file.root.trainData[918970:919970]
     testLabels = label_file.root.trainLabel[918970:919970]
-    testData, testLabels = reformat(testData, testLabel)
-    print(testLabel[:,None])
+    testData, testLabels = reformat(testData, testLabels)
 #if(args["test_mode"] <= 0):
 #    print("[INFO] using training mode")
 #    print("[INFO] loading features...")
@@ -197,7 +195,7 @@ with graph.as_default():
         test_prediction = tf.nn.softmax(model(tf_test_dataset))
         # Learning rate decay
         global_step = tf.Variable(0, trainable=False)
-        starter_learning_rate = 1e-4
+        starter_learning_rate = 1e-3
         learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
                                                100000, 0.96, staircase=True)
 
@@ -209,7 +207,7 @@ with graph.as_default():
 
 # running stage
 num_epochs = 10
-num_iters = 1200
+num_iters = 1100
 
 with tf.Session(graph=graph) as session:
     begin = clock()
@@ -224,6 +222,7 @@ with tf.Session(graph=graph) as session:
     if(args["test_mode"] <= 0):
         for epoch in range(num_epochs):
             #trainData, trainLabels = shuffle(trainData, trainLabels)
+            trainIndex = np.random.permutation(919975)
             offset = 0
             for iteration in range(num_iters):
                 # stochastic gradient descent
@@ -232,14 +231,22 @@ with tf.Session(graph=graph) as session:
                 #batch_labels = trainLabels[batch_index]
                 # batch gradient descent
                 offset = (iteration * batch_size)
-                batch_data = data_file.root.trainData[offset:(offset + batch_size)]
-                batch_labels = label_file.root.trainLabel[offset:(offset + batch_size)]
+                if(offset + batch_size > 919975):
+                    offset = 0
+                batch_data = np.zeros((batch_size, 18432))
+                batch_labels = np.zeros((batch_size, 1))
+                for i in range(batch_size):
+                    batch_data[i] = data_file.root.trainData[trainIndex[offset+i]]
+                    batch_labels[i] = label_file.root.trainLabel[trainIndex[offset+i]]
+                #batch_data = data_file.root.trainData[trainIndex[offset:(offset + batch_size)]]
+                #batch_labels = label_file.root.trainLabel[trainIndex[offset:(offset + batch_size)]]
                 batch_data, batch_labels = reformat(batch_data, batch_labels)
                 feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
             
                 _, l, predictions = session.run(
                     [optimizer, loss, train_prediction], feed_dict=feed_dict)
                 if (iteration % 100 == 0):
+                    print('[INFO] learning rate at current time: %.1f%%' % tf.train.global_step())
                     print('[INFO] Minibatch loss at epoch %d iteration %d: %f' % (epoch, iteration, l))
                     print('[INFO] Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
                     print('[INFO] Test accuracy: %.1f%%' % accuracy(test_prediction.eval(session=session), testLabels))

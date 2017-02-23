@@ -5,9 +5,9 @@ from matplotlib import pyplot as plt
 def main(argv):
     hdf5_path = 'trainLabel.hdf5'
     hdf5_file = tables.open_file(hdf5_path, mode='r')
-    hdf5_data = hdf5_file.root.trainLabel[:]
+    hdf5_data = hdf5_file.root.trainLabel[:100]
     #print('the data size is %d' %hdf5_data.shape)
-    print(hdf5_data.shape)
+    print(hdf5_data)
     #print(hdf5_data)
     #print('going to plot the data for training...')
     #img_array = np.asarray(hdf5_data[48*48*3:48*48*4]).reshape((48,48))
