@@ -3,3 +3,4 @@ data/chars_generated/*
 data/matrices.txt
 data/classes.txt
 *.hdf5
+*.out
