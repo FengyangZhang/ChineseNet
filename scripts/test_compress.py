@@ -26,7 +26,7 @@ def main(argv):
     hdf5_file = tables.open_file(hdf5_path, mode='r')
     hdf5_data = hdf5_file.root.valData[0]
     hdf5_file.close()
-    hdf5_data = hdf5_data.reshape(8,48,48).transpose[1,2,0]
+    hdf5_data = hdf5_data.reshape((8,48,48)).transpose(1,2,0)
     plot_data(hdf5_data[:,:,0])
 
 def plot_data(data):
