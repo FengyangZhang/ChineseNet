@@ -246,7 +246,6 @@ with tf.Session(graph=graph) as session:
                 _, l, predictions = session.run(
                     [optimizer, loss, train_prediction], feed_dict=feed_dict)
                 if (iteration % 100 == 0):
-                    print('[INFO] learning rate at current time: %.1f%%' % tf.train.global_step())
                     print('[INFO] Minibatch loss at epoch %d iteration %d: %f' % (epoch, iteration, l))
                     print('[INFO] Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
                     print('[INFO] Test accuracy: %.1f%%' % accuracy(test_prediction.eval(session=session), testLabels))
