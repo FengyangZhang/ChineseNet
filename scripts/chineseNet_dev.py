@@ -38,7 +38,7 @@ def reformat(dataset, labels):
     dataset = dataset.reshape(
         (-1, num_channels, image_height, image_width)).transpose(0,2,3,1).astype(np.float32)
     dataset = dataset / 255
-    labels = (np.arange(num_labels) == labels[:,None]).astype(np.int32).reshape((-1, 3755))
+    labels = (np.arange(num_labels) == labels[:,None]).astype(np.uint32).reshape((-1, 3755))
     return dataset, labels
 
 # shuffle the data and label accordingly
@@ -110,26 +110,26 @@ with graph.as_default():
     conv_weights = []
     conv_biases = []
     conv_weights.append(tf.Variable(tf.truncated_normal(
-            [patch_size, patch_size, num_channels, depth[0]], stddev=0.1) / (patch_size * patch_size * num_channels)))
+            [patch_size, patch_size, num_channels, depth[0]], stddev=0.1)))
     conv_biases.append(tf.Variable(tf.zeros(depth[0])))
     for i in range(1, 8):
         conv_weights.append(tf.Variable(tf.truncated_normal(
-            [patch_size, patch_size, depth[i-1], depth[i]], stddev=0.1) / (patch_size * patch_size * depth[i-1])))
+            [patch_size, patch_size, depth[i-1], depth[i]], stddev=0.1)))
         conv_biases.append(tf.Variable(tf.zeros(depth[i])))
 
     # Three FC layer variables
     fc_weights = []
     fc_biases = []
     fc_weights.append(tf.Variable(tf.truncated_normal(
-      [image_height // 16 * image_width // 16 * depth[7], num_hidden[0]], stddev=0.1) / image_height // 16 * image_width // 16 * depth[7]))
+      [image_height // 16 * image_width // 16 * depth[7], num_hidden[0]], stddev=0.1)))
     fc_biases.append(tf.Variable(tf.zeros(num_hidden[0])))
     
     fc_weights.append(tf.Variable(tf.truncated_normal(
-      [num_hidden[0], num_hidden[1]], stddev=0.1) / num_hidden[0]))
+      [num_hidden[0], num_hidden[1]], stddev=0.1)))
     fc_biases.append(tf.Variable(tf.zeros(num_hidden[1])))
 
     softmax_weights = tf.Variable(tf.truncated_normal(
-      [num_hidden[1], num_labels], stddev=0.1) / num_hidden[1])
+      [num_hidden[1], num_labels], stddev=0.1))
     softmax_biases = tf.Variable(tf.zeros(num_labels))    
 
     # Model.
@@ -191,17 +191,22 @@ with graph.as_default():
     if(args["test_mode"] <= 0):
         # Training loss and pred computation.
         logits = model(tf_train_dataset)
+        beta = 0.0005
+        variables = tf.trainable_variables()
+        loss_L2 = beta * tf.add_n([tf.nn.l2_loss(v) for v in variables if 'bias' not in v.name])
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+        #    loss_L2)
+        
         train_prediction = tf.nn.softmax(logits)
         test_prediction = tf.nn.softmax(model(tf_test_dataset))
         # Learning rate decay
         global_step = tf.Variable(0, trainable=False)
-        starter_learning_rate = 5e-3
+        starter_learning_rate = 1e-3
         learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
                                                100000, 0.96, staircase=True)
-        
         momentum = 0.9
-        optimizer = tf.train.MomentumOptimizer(learning_rate, momentum).minimize(loss)
+
+        optimizer = tf.train.MomentumOptimizer(learning_rate,momentum).minimize(loss)
         # Add ops to save and restore all the variables.
         saver = tf.train.Saver()
     else:
@@ -231,7 +236,6 @@ with tf.Session(graph=graph) as session:
                 #batch_index = np.random.choice(trainLabels.shape[0], batch_size)
                 #batch_data = trainData[batch_index]
                 #batch_labels = trainLabels[batch_index]
-                # batch gradient descent
                 offset = (iteration * batch_size)
                 if(offset + batch_size > 919975):
                     offset = 0
@@ -240,8 +244,6 @@ with tf.Session(graph=graph) as session:
                 for i in range(batch_size):
                     batch_data[i] = data_file.root.trainData[trainIndex[offset+i]]
                     batch_labels[i] = label_file.root.trainLabel[trainIndex[offset+i]]
-                #batch_data = data_file.root.trainData[trainIndex[offset:(offset + batch_size)]]
-                #batch_labels = label_file.root.trainLabel[trainIndex[offset:(offset + batch_size)]]
                 batch_data, batch_labels = reformat(batch_data, batch_labels)
                 feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
             
