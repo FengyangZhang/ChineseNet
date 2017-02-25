@@ -9,16 +9,16 @@ import PIL.ImageOps
 import cv2
 
 def main(argv):
-    in_dir = '../data/chars_generated/'
+    in_dir = '../data/chars_generated_32/'
     out_dir = '../data/chars_generated_32/'
     img_names = os.listdir(in_dir)
     is_jpg = re.compile(r'.+?\.jpg')
 # do interpolation to generate (32,32) images
-    for name in img_names:
-        if(is_jpg.match(name)):
-            img = cv2.imread(in_dir + name)
-            res = cv2.resize(img, (32, 32), interpolation = cv2.INTER_CUBIC)
-            cv2.imwrite(out_dir + name, res)
+#    for name in img_names:
+#        if(is_jpg.match(name)):
+#            img = cv2.imread(in_dir + name)
+#            res = cv2.resize(img, (32, 32), interpolation = cv2.INTER_CUBIC)
+#            cv2.imwrite(out_dir + name, res)
 # resize the image
     # for name in img_names:
     #     if(is_jpg.match(name)):
@@ -31,11 +31,11 @@ def main(argv):
    #         image = Image.open(in_dir + name)
    #         inverted_image = PIL.ImageOps.invert(image)
    #         inverted_image.save(out_dir + name)
-# convert to greyscale
-    # for name in img_names:
-    #     if(is_jpg.match(name)):
-    #         image = Image.open(in_dir + name).convert('L')
-    #         image.save(in_dir + name)
+# convert to grayscale
+    for name in img_names:
+        if(is_jpg.match(name)):
+            image = Image.open(in_dir + name).convert('L')
+            image.save(in_dir + name)
 
 # shifting pixels
    # for name in img_names:

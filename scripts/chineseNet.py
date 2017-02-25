@@ -19,13 +19,13 @@ ap.add_argument("-i", "--image_path", type=str,
     help="(optional) path to the image if you are using test mode" )
 args = vars(ap.parse_args())
 
-data_path = "./trainData.hdf5"
+data_path = "./trainData_32.hdf5"
 label_path = "./trainLabel.hdf5"
 
 # declare some hyperparameters
-batch_size = 800
-image_height = 48
-image_width = 48
+batch_size = 1000
+image_height = 32
+image_width = 32
 num_channels = 8
 patch_size = 3
 depth = (50, 100, 150, 200, 250, 300, 350, 400)
@@ -38,7 +38,7 @@ def reformat(dataset, labels):
     dataset = dataset.reshape(
         (-1, num_channels, image_height, image_width)).transpose(0,2,3,1).astype(np.float32)
     dataset = dataset / 255
-    labels = (np.arange(num_labels) == labels[:,None]).astype(np.int32).reshape((-1, 3755))
+    labels = (np.arange(num_labels) == labels[:,None]).astype(np.uint32).reshape((-1, 3755))
     return dataset, labels
 
 # shuffle the data and label accordingly
@@ -209,7 +209,7 @@ with graph.as_default():
 
 # running stage
 num_epochs = 10
-num_iters = 1100
+num_iters = 910
 
 with tf.Session(graph=graph) as session:
     begin = clock()
@@ -235,7 +235,7 @@ with tf.Session(graph=graph) as session:
                 offset = (iteration * batch_size)
                 if(offset + batch_size > 919975):
                     offset = 0
-                batch_data = np.zeros((batch_size, 18432))
+                batch_data = np.zeros((batch_size, 8192))
                 batch_labels = np.zeros((batch_size, 1))
                 for i in range(batch_size):
                     batch_data[i] = data_file.root.trainData[trainIndex[offset+i]]
@@ -247,7 +247,18 @@ with tf.Session(graph=graph) as session:
             
                 _, l, predictions = session.run(
                     [optimizer, loss, train_prediction], feed_dict=feed_dict)
+                #if(iteration == 100):
+                    #np.set_printoptions(threshold=np.nan)
+                    #print('[TEST] Softmax weights:')
+                    #print(tf.Print(softmax_weights))
+                    #print('[TEST] Batch predictions:')
+                    #print(predictions[0])
+                    #print('[TEST] Real labels:')
+                    #print(batch_labels[0])
                 if (iteration % 100 == 0):
+                    np.set_printoptions(threshold=np.nan)
+                    print('[TEST] Softmax weights:')
+                    print(tf.Print(softmax_weights, [softmax_weights]))
                     print('[INFO] Minibatch loss at epoch %d iteration %d: %f' % (epoch, iteration, l))
                     print('[INFO] Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
                     print('[INFO] Test accuracy: %.1f%%' % accuracy(test_prediction.eval(session=session), testLabels))

@@ -9,7 +9,7 @@ import re
 import tables
 
 def main(argv):
-    img_dir = "../data/chars_generated/"
+    img_dir = "../data/chars_generated_32/"
     img_srcs = os.listdir(img_dir)
     sys.stdout.flush()
     print('%d images in total.'%len(img_srcs))
@@ -19,7 +19,7 @@ def main(argv):
     print('generating training data...')
     counter = 0
     if (len(img_srcs)>0):
-        hdf5_path = 'trainData.hdf5'
+        hdf5_path = 'trainData_32.hdf5'
         #img_src = img_dir + img_srcs[0]
         #img_mat = np.array(Image.open(img_src))
         #img_mat = img2directMap(img_mat)
@@ -28,7 +28,7 @@ def main(argv):
         filters = tables.Filters(complevel=5, complib='blosc')
         trainData = hdf5_file.create_earray(hdf5_file.root, 'trainData',
                                            tables.Atom.from_dtype(np.dtype('uint8')), 
-                                           shape=(0, 18432),
+                                           shape=(0, 8192),
                                            filters=filters,
                                            expectedrows=919975)
 
@@ -42,7 +42,7 @@ def main(argv):
                 img_src = img_dir + img_src
                 img_mat = np.array(Image.open(img_src))
                 img_mat = img2directMap(img_mat)
-                trainData.append(img_mat.reshape((1,18432)))
+                trainData.append(img_mat.reshape((1,8192)))
         hdf5_file.close()
 
 def img2directMap(img):
