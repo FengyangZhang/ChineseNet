@@ -110,79 +110,107 @@ with graph.as_default():
     conv_weights = []
     conv_biases = []
     conv_weights.append(tf.Variable(tf.truncated_normal(
-            [patch_size, patch_size, num_channels, depth[0]], stddev=0.1) / (patch_size * patch_size * num_channels)))
+            [patch_size, patch_size, num_channels, depth[0]], stddev=1) / np.sqrt(patch_size * patch_size * num_channels / 2)))
     conv_biases.append(tf.Variable(tf.zeros(depth[0])))
     for i in range(1, 8):
         conv_weights.append(tf.Variable(tf.truncated_normal(
-            [patch_size, patch_size, depth[i-1], depth[i]], stddev=0.1) / (patch_size * patch_size * depth[i-1])))
+            [patch_size, patch_size, depth[i-1], depth[i]], stddev=1) / np.sqrt(patch_size * patch_size * depth[i-1] / 2)))
         conv_biases.append(tf.Variable(tf.zeros(depth[i])))
 
     # Three FC layer variables
     fc_weights = []
     fc_biases = []
     fc_weights.append(tf.Variable(tf.truncated_normal(
-      [image_height // 16 * image_width // 16 * depth[7], num_hidden[0]], stddev=0.1) / image_height // 16 * image_width // 16 * depth[7]))
+      [image_height // 16 * image_width // 16 * depth[7], num_hidden[0]], stddev=1) / np.sqrt((image_height // 16) * (image_width // 16) * depth[7] / 2)))
     fc_biases.append(tf.Variable(tf.zeros(num_hidden[0])))
     
     fc_weights.append(tf.Variable(tf.truncated_normal(
-      [num_hidden[0], num_hidden[1]], stddev=0.1) / num_hidden[0]))
+      [num_hidden[0], num_hidden[1]], stddev=1) / np.sqrt(num_hidden[0] / 2)))
     fc_biases.append(tf.Variable(tf.zeros(num_hidden[1])))
 
     softmax_weights = tf.Variable(tf.truncated_normal(
-      [num_hidden[1], num_labels], stddev=0.1) / num_hidden[1])
+      [num_hidden[1], num_labels], stddev=1) /np.sqrt(num_hidden[1] / 2))
     softmax_biases = tf.Variable(tf.zeros(num_labels))    
+    
+    def batchnorm(layer, num_output):
+        batch_mean, batch_var = tf.nn.moments(layer,[0])
+        gamma = tf.Variable(tf.ones([num_output]))
+        beta = tf.Variable(tf.zeros([num_output]))
+        epsilon = 1e-3
+        return tf.nn.batch_normalization(layer, batch_mean, batch_var, beta, gamma, epsilon, name=None)
 
     # Model.
     def model(data):
         # conv layers
-        conv1 = tf.nn.conv2d(data, conv_weights[0], [1, 1, 1, 1], padding='SAME')
-        hidden1 = tf.nn.relu(conv1 + conv_biases[0])
+        conv1 = tf.nn.conv2d(data, conv_weights[0], [1, 1, 1, 1], padding='SAME') + conv_biases[0]
+        conv1 = batchnorm(conv1, 50)
+        hidden1 = tf.nn.relu(conv1)
         hidden1 = tf.nn.dropout(hidden1, keep_prob[0])
-        conv2 = tf.nn.conv2d(hidden1, conv_weights[1], [1, 1, 1, 1], padding='SAME')
-        hidden2 = tf.nn.relu(conv2 + conv_biases[1])
+
+        conv2 = tf.nn.conv2d(hidden1, conv_weights[1], [1, 1, 1, 1], padding='SAME') + conv_biases[1] 
+        conv2 = batchnorm(conv2, 100)
+        hidden2 = tf.nn.relu(conv2)
         hidden2 = tf.nn.dropout(hidden2, keep_prob[1])
+
         pool1 = tf.nn.max_pool(hidden2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
                              padding='SAME')
         
-        conv3 = tf.nn.conv2d(pool1, conv_weights[2], [1, 1, 1, 1], padding='SAME')
-        hidden3 = tf.nn.relu(conv3 + conv_biases[2])
+
+        conv3 = tf.nn.conv2d(pool1, conv_weights[2], [1, 1, 1, 1], padding='SAME') + conv_biases[2]
+        conv3 = batchnorm(conv3, 150)
+        hidden3 = tf.nn.relu(conv3)
         hidden3 = tf.nn.dropout(hidden3, keep_prob[2])
-        conv4 = tf.nn.conv2d(hidden3, conv_weights[3], [1, 1, 1, 1], padding='SAME')
-        hidden4 = tf.nn.relu(conv4 + conv_biases[3])
+
+        conv4 = tf.nn.conv2d(hidden3, conv_weights[3], [1, 1, 1, 1], padding='SAME') + conv_biases[3]
+        conv4 = batchnorm(conv4, 200)
+        hidden4 = tf.nn.relu(conv4)
         hidden4 = tf.nn.dropout(hidden4, keep_prob[3])
+
         pool2 = tf.nn.max_pool(hidden4, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
                              padding='SAME')
         
-        conv5 = tf.nn.conv2d(pool2, conv_weights[4], [1, 1, 1, 1], padding='SAME')
-        hidden5 = tf.nn.relu(conv5 + conv_biases[4])
+
+        conv5 = tf.nn.conv2d(pool2, conv_weights[4], [1, 1, 1, 1], padding='SAME') + conv_biases[4]
+        conv5 = batchnorm(conv5, 250)
+        hidden5 = tf.nn.relu(conv5)
         hidden5 = tf.nn.dropout(hidden5, keep_prob[4])
-        conv6 = tf.nn.conv2d(hidden5, conv_weights[5], [1, 1, 1, 1], padding='SAME')
-        hidden6 = tf.nn.relu(conv6 + conv_biases[5])
+
+        conv6 = tf.nn.conv2d(hidden5, conv_weights[5], [1, 1, 1, 1], padding='SAME') + conv_biases[5]
+        conv6 = batchnorm(conv, 300)
+        hidden6 = tf.nn.relu(conv6)
         hidden6 = tf.nn.dropout(hidden6, keep_prob[5])
+
         pool3 = tf.nn.max_pool(hidden6, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
                              padding='SAME')
         
-        conv7 = tf.nn.conv2d(pool3, conv_weights[6], [1, 1, 1, 1], padding='SAME')
-        hidden7 = tf.nn.relu(conv7 + conv_biases[6])
+
+        conv7 = tf.nn.conv2d(pool3, conv_weights[6], [1, 1, 1, 1], padding='SAME') + conv_biases[6]
+        conv7 = batchnorm(conv7, 350)
+        hidden7 = tf.nn.relu(conv7)
         hidden7 = tf.nn.dropout(hidden7, keep_prob[6])
-        conv8 = tf.nn.conv2d(hidden7, conv_weights[7], [1, 1, 1, 1], padding='SAME')
-        hidden8 = tf.nn.relu(conv8 + conv_biases[7])
-        hidden8 = tf.nn.dropout(hidden8, keep_prob[7])
+
+        conv8 = tf.nn.conv2d(hidden7, conv_weights[7], [1, 1, 1, 1], padding='SAME') + conv_biases[7]
+        conv8 = batchnorm(conv8, 400)
+        hidden8 = tf.nn.relu(conv8)
+        hidden8 = tf.nn.dropout(norm0, keep_prob[7])
+
         pool4 = tf.nn.max_pool(hidden8, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
                              padding='SAME')
-        # Optional: normalization
-        # norm1 = tf.nn.lrn(pool1, 4, bias=1.0,   alpha=0.001 / 9.0, beta=0.75,
-        #                 name='norm1')
 
         # fc layers
         shape = pool4.get_shape().as_list()
         reshape = tf.reshape(pool4, [shape[0], shape[1]*shape[2]*shape[3]])
-        hidden9 = tf.nn.relu(tf.matmul(reshape, fc_weights[0]) + fc_biases[0])
+        
+        hidden9 = tf.matmul(reshape, fc_weights[0]) + fc_biases[0]
+        hidden9 = batchnorm(hidden9, 900)
+        hidden9 = tf.nn.relu(hidden9)
         hidden9 = tf.nn.dropout(hidden9, keep_prob[8])
-        
-        hidden10 = tf.nn.relu(tf.matmul(hidden9, fc_weights[1]) + fc_biases[1])
+
+        hidden10 = tf.matmul(hidden9, fc_weights[1]) + fc_biases[1]
+        hidden10 = batchnorm(hidden10, 200)
+        hidden10 = tf.nn.relu(hidden10)
         hidden10 = tf.nn.dropout(hidden10, keep_prob[9])
-        
+
         # output layer
         result = tf.matmul(hidden10, softmax_weights) + softmax_biases
 
@@ -204,6 +232,10 @@ with graph.as_default():
         optimizer = tf.train.MomentumOptimizer(learning_rate, momentum).minimize(loss)
         # Add ops to save and restore all the variables.
         saver = tf.train.Saver()
+        # check gradients
+        #grads_and_vars = optimizer.compute_gradients(loss)
+        #grads_compute = optimizer.apply_gradients(grads_and_vars)
+
     else:
         test_prediction = tf.nn.softmax(model(tf_test_dataset))
 
@@ -251,14 +283,21 @@ with tf.Session(graph=graph) as session:
                     #np.set_printoptions(threshold=np.nan)
                     #print('[TEST] Softmax weights:')
                     #print(tf.Print(softmax_weights))
-                    #print('[TEST] Batch predictions:')
-                    #print(predictions[0])
                     #print('[TEST] Real labels:')
                     #print(batch_labels[0])
                 if (iteration % 100 == 0):
                     np.set_printoptions(threshold=np.nan)
+                    #session.run(grads_compute)
+                    #for gv in grads_and_vars:
+                    #    print(str(see.run(gv[0])) + ' - ' + gv[1].name)
+                    #var_grad = tf.gradients(loss, [softmax_weights])[0]
+                    #var_grad_val = session.run(var_grad)
+                    #print(var_grad_val[:20, 1500:2000])
                     print('[TEST] Softmax weights:')
-                    print(tf.Print(softmax_weights, [softmax_weights]))
+                    weights = session.run(softmax_weights)
+                    print(weights[20, 1500:2000])
+                    #print('[TEST] Batch predictions:')
+                    #print(predictions[0])
                     print('[INFO] Minibatch loss at epoch %d iteration %d: %f' % (epoch, iteration, l))
                     print('[INFO] Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
                     print('[INFO] Test accuracy: %.1f%%' % accuracy(test_prediction.eval(session=session), testLabels))
