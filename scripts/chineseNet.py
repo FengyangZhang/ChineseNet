@@ -60,8 +60,8 @@ if(args["test_mode"] <= 0):
     data_file = tables.open_file(data_path, mode='r')
     print("[INFO] loading labels...")
     label_file = tables.open_file(label_path, mode='r')
-    testData = data_file.root.trainData[918970:919970]
-    testLabels = label_file.root.trainLabel[918970:919970]
+    testData = data_file.root.trainData[919000:919973]
+    testLabels = label_file.root.trainLabel[919000:919973]
     testData, testLabels = reformat(testData, testLabels)
 #if(args["test_mode"] <= 0):
 #    print("[INFO] using training mode")
@@ -176,7 +176,7 @@ with graph.as_default():
         hidden5 = tf.nn.dropout(hidden5, keep_prob[4])
 
         conv6 = tf.nn.conv2d(hidden5, conv_weights[5], [1, 1, 1, 1], padding='SAME') + conv_biases[5]
-        conv6 = batchnorm(conv, 300)
+        conv6 = batchnorm(conv6, 300)
         hidden6 = tf.nn.relu(conv6)
         hidden6 = tf.nn.dropout(hidden6, keep_prob[5])
 
@@ -192,7 +192,7 @@ with graph.as_default():
         conv8 = tf.nn.conv2d(hidden7, conv_weights[7], [1, 1, 1, 1], padding='SAME') + conv_biases[7]
         conv8 = batchnorm(conv8, 400)
         hidden8 = tf.nn.relu(conv8)
-        hidden8 = tf.nn.dropout(norm0, keep_prob[7])
+        hidden8 = tf.nn.dropout(hidden8, keep_prob[7])
 
         pool4 = tf.nn.max_pool(hidden8, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
                              padding='SAME')
@@ -241,7 +241,7 @@ with graph.as_default():
 
 # running stage
 num_epochs = 10
-num_iters = 910
+num_iters = 919
 
 with tf.Session(graph=graph) as session:
     begin = clock()
@@ -256,7 +256,7 @@ with tf.Session(graph=graph) as session:
     if(args["test_mode"] <= 0):
         for epoch in range(num_epochs):
             #trainData, trainLabels = shuffle(trainData, trainLabels)
-            trainIndex = np.random.permutation(919975)
+            trainIndex = np.random.permutation(919000)
             offset = 0
             for iteration in range(num_iters):
                 # stochastic gradient descent
@@ -265,7 +265,7 @@ with tf.Session(graph=graph) as session:
                 #batch_labels = trainLabels[batch_index]
                 # batch gradient descent
                 offset = (iteration * batch_size)
-                if(offset + batch_size > 919975):
+                if(offset + batch_size > 919000):
                     offset = 0
                 batch_data = np.zeros((batch_size, 8192))
                 batch_labels = np.zeros((batch_size, 1))
@@ -293,9 +293,9 @@ with tf.Session(graph=graph) as session:
                     #var_grad = tf.gradients(loss, [softmax_weights])[0]
                     #var_grad_val = session.run(var_grad)
                     #print(var_grad_val[:20, 1500:2000])
-                    print('[TEST] Softmax weights:')
-                    weights = session.run(softmax_weights)
-                    print(weights[20, 1500:2000])
+                    #print('[TEST] Softmax weights:')
+                    #weights = session.run(softmax_weights)
+                    #print(weights[20, 1500:2000])
                     #print('[TEST] Batch predictions:')
                     #print(predictions[0])
                     print('[INFO] Minibatch loss at epoch %d iteration %d: %f' % (epoch, iteration, l))
