@@ -5,7 +5,7 @@ import tables
 import numpy as np
 
 def main(argv):
-    img_dir = "../data/chars_generated/"
+    img_dir = "../data/chars_generated_32/"
     img_srcs = os.listdir(img_dir)
     is_jpg = re.compile(r'.+?\.jpg')
     print('generating class labels...') 
@@ -17,7 +17,7 @@ def main(argv):
                                            tables.Atom.from_dtype(np.dtype('uint32')), 
                                            shape=(0,1),
                                            filters=filters,
-                                           expectedrows=919975)
+                                           expectedrows=919974)
         #
         counter = 0
         for img_src in img_srcs:

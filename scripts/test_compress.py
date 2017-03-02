@@ -3,9 +3,9 @@ import sys
 import tables
 from matplotlib import pyplot as plt
 def main(argv):
-    hdf5_path = 'trainData.hdf5'
+    hdf5_path = 'trainLabel.hdf5'
     hdf5_file = tables.open_file(hdf5_path, mode='r')
-    hdf5_data = hdf5_file.root.trainData[919974]
+    hdf5_data = hdf5_file.root.trainLabel[919973]
     hdf5_file.close()
 
     #hdf5_path = 'valData.hdf5'

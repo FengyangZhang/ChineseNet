@@ -219,7 +219,7 @@ with graph.as_default():
     if(args["test_mode"] <= 0):
         # Training loss and pred computation.
         logits = model(tf_train_dataset)
-        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
         train_prediction = tf.nn.softmax(logits)
         test_prediction = tf.nn.softmax(model(tf_test_dataset))
         # Learning rate decay
