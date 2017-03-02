@@ -301,13 +301,13 @@ with tf.Session(graph=graph) as session:
                     print('[INFO] Minibatch loss at epoch %d iteration %d: %f' % (epoch, iteration, l))
                     print('[INFO] Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
                     print('[INFO] Test accuracy: %.1f%%' % accuracy(test_prediction.eval(session=session), testLabels))
+                    if(args["save_model"] > 0):
+                        print('[INFO] saving model to file...')
+                        save_path = saver.save(session, args["model_path"])
+                        print("[INFO] Model saved in file: %s" % save_path)
+                    else:
+                        print('[INFO] you chose not to save model')
     else:
         print('[INFO] test prediction: mostlikely to be %s' %np.argmax(test_prediction.eval(session=session)))
-    if(args["save_model"] > 0):
-        print('[INFO] saving model to file...')
-        save_path = saver.save(session, args["model_path"]) 
-        print("[INFO] Model saved in file: %s" % save_path)
-    else:
-        print('[INFO] you chose not to save model and exit.')
 end = clock()
 print('[INFO] total time used: %f' %(end - begin))
