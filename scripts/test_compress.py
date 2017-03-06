@@ -2,11 +2,13 @@ import numpy as np
 import sys
 import tables
 from matplotlib import pyplot as plt
+import img2txt
+import Image
 def main(argv):
-    hdf5_path = 'trainLabel.hdf5'
-    hdf5_file = tables.open_file(hdf5_path, mode='r')
-    hdf5_data = hdf5_file.root.trainLabel[919973]
-    hdf5_file.close()
+    #hdf5_path = 'trainData_32.hdf5'
+    #hdf5_file = tables.open_file(hdf5_path, mode='r')
+    #hdf5_data = hdf5_file.root.trainData[919973]
+    #hdf5_file.close()
 
     #hdf5_path = 'valData.hdf5'
     #hdf5_file = tables.open_file(hdf5_path, mode='w')
@@ -16,7 +18,11 @@ def main(argv):
     #                                   shape=(0, 18432),
     #                                   filters=filters)
     #valData.append(hdf5_data.reshape((1,18432)))
-    print('the data size is %d' %hdf5_data.shape)
+    img_src = '../data/chars_generated_32/999_31.jpg'
+    img_mat = np.array(Image.open(img_src))    
+    #print('the img size is %d' %img_mat.shape)
+    directMap = img2txt.img2directMap(img_mat)
+    print(directMap.shape)
     #print(hdf5_data)
     #print('going to plot the data for training...')
     #img_array = np.asarray(hdf5_data[48*48*3:48*48*4]).reshape((48,48))

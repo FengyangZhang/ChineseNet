@@ -91,6 +91,15 @@ if(args["test_mode"] <= 0):
 #
 else:
     print("[INFO] using single image test mode!")
+    print("[INFO] loading features...")
+    data_file = tables.open_file(data_path, mode='r')
+    testData = data_file.root.trainData[202]
+    testData = testData.reshape(
+                    (-1, num_channels, image_height, image_width)).transpose(0,2,3,1).astype(np.float32)
+    testData = testData / 255
+    label_file = tables.open_file(label_path, mode='r')
+    testLabel = label_file.root.trainLabel[202]
+    #print('the tested image is a %d' %testLabel)
     #testData = np.array(Image.open(args["image_path"]), dtype='float32')
     #testData = np.reshape(testData, (1, image_height, image_width, num_channels))
     
@@ -132,23 +141,63 @@ with graph.as_default():
       [num_hidden[1], num_labels], stddev=1) /np.sqrt(num_hidden[1] / 2))
     softmax_biases = tf.Variable(tf.zeros(num_labels))    
     
-    def batchnorm(layer, num_output):
-        batch_mean, batch_var = tf.nn.moments(layer,[0])
-        gamma = tf.Variable(tf.ones([num_output]))
-        beta = tf.Variable(tf.zeros([num_output]))
+    def batchnorm_for_affine(layer):
+        D = layer.get_shape()[-1]
+        scale = tf.Variable(tf.ones([D]))
+        beta = tf.Variable(tf.zeros([D]))
+        pop_mean = tf.Variable(tf.zeros([D]), trainable=False)
+        pop_var = tf.Variable(tf.ones([D]), trainable=False)
         epsilon = 1e-3
-        return tf.nn.batch_normalization(layer, batch_mean, batch_var, beta, gamma, epsilon, name=None)
+        decay = 0.999
+        
+        if(args["test_mode"] <= 0):
+            batch_mean, batch_var = tf.nn.moments(layer,[0])
+            train_mean = tf.assign(pop_mean,
+                pop_mean * decay + batch_mean * (1 - decay))
+            train_var = tf.assign(pop_var,
+                pop_var * decay + batch_var * (1 - decay))
+            with tf.control_dependencies([train_mean, train_var]):
+                return tf.nn.batch_normalization(layer,
+                    batch_mean, batch_var, beta, scale, epsilon)
+        else:
+            return tf.nn.batch_normalization(layer,
+                pop_mean, pop_var, beta, scale, epsilon)
 
+    def batchnorm_for_conv(layer):
+        shape = layer.get_shape().as_list()
+        flatten = tf.reshape(layer, [shape[0], shape[1]*shape[2]*shape[3]])
+        D = flatten.get_shape()[-1]
+        scale = tf.Variable(tf.ones([D]))
+        beta = tf.Variable(tf.zeros([D]))
+        pop_mean = tf.Variable(tf.zeros([D]), trainable=False)
+        pop_var = tf.Variable(tf.ones([D]), trainable=False)
+        epsilon = 1e-3
+        decay = 0.999
+        
+        if(args["test_mode"] <= 0):
+            batch_mean, batch_var = tf.nn.moments(flatten,[0])
+            train_mean = tf.assign(pop_mean,
+                pop_mean * decay + batch_mean * (1 - decay))
+            train_var = tf.assign(pop_var,
+                pop_var * decay + batch_var * (1 - decay))
+            with tf.control_dependencies([train_mean, train_var]):
+                norm = tf.nn.batch_normalization(flatten,
+                    batch_mean, batch_var, beta, scale, epsilon)
+                return tf.reshape(norm, [shape[0], shape[1], shape[2], shape[3]])
+        else:
+            norm = tf.nn.batch_normalization(flatten,
+                pop_mean, pop_var, beta, scale, epsilon)
+            return tf.reshape(norm, [shape[0], shape[1], shape[2], shape[3]])
     # Model.
     def model(data):
         # conv layers
         conv1 = tf.nn.conv2d(data, conv_weights[0], [1, 1, 1, 1], padding='SAME') + conv_biases[0]
-        conv1 = batchnorm(conv1, 50)
+        conv1 = batchnorm_for_conv(conv1)
         hidden1 = tf.nn.relu(conv1)
         hidden1 = tf.nn.dropout(hidden1, keep_prob[0])
 
         conv2 = tf.nn.conv2d(hidden1, conv_weights[1], [1, 1, 1, 1], padding='SAME') + conv_biases[1] 
-        conv2 = batchnorm(conv2, 100)
+        conv2 = batchnorm_for_conv(conv2)
         hidden2 = tf.nn.relu(conv2)
         hidden2 = tf.nn.dropout(hidden2, keep_prob[1])
 
@@ -157,12 +206,12 @@ with graph.as_default():
         
 
         conv3 = tf.nn.conv2d(pool1, conv_weights[2], [1, 1, 1, 1], padding='SAME') + conv_biases[2]
-        conv3 = batchnorm(conv3, 150)
+        conv3 = batchnorm_for_conv(conv3)
         hidden3 = tf.nn.relu(conv3)
         hidden3 = tf.nn.dropout(hidden3, keep_prob[2])
 
         conv4 = tf.nn.conv2d(hidden3, conv_weights[3], [1, 1, 1, 1], padding='SAME') + conv_biases[3]
-        conv4 = batchnorm(conv4, 200)
+        conv4 = batchnorm_for_conv(conv4)
         hidden4 = tf.nn.relu(conv4)
         hidden4 = tf.nn.dropout(hidden4, keep_prob[3])
 
@@ -171,12 +220,12 @@ with graph.as_default():
         
 
         conv5 = tf.nn.conv2d(pool2, conv_weights[4], [1, 1, 1, 1], padding='SAME') + conv_biases[4]
-        conv5 = batchnorm(conv5, 250)
+        conv5 = batchnorm_for_conv(conv5)
         hidden5 = tf.nn.relu(conv5)
         hidden5 = tf.nn.dropout(hidden5, keep_prob[4])
 
         conv6 = tf.nn.conv2d(hidden5, conv_weights[5], [1, 1, 1, 1], padding='SAME') + conv_biases[5]
-        conv6 = batchnorm(conv6, 300)
+        conv6 = batchnorm_for_conv(conv6)
         hidden6 = tf.nn.relu(conv6)
         hidden6 = tf.nn.dropout(hidden6, keep_prob[5])
 
@@ -185,12 +234,12 @@ with graph.as_default():
         
 
         conv7 = tf.nn.conv2d(pool3, conv_weights[6], [1, 1, 1, 1], padding='SAME') + conv_biases[6]
-        conv7 = batchnorm(conv7, 350)
+        conv7 = batchnorm_for_conv(conv7)
         hidden7 = tf.nn.relu(conv7)
         hidden7 = tf.nn.dropout(hidden7, keep_prob[6])
 
         conv8 = tf.nn.conv2d(hidden7, conv_weights[7], [1, 1, 1, 1], padding='SAME') + conv_biases[7]
-        conv8 = batchnorm(conv8, 400)
+        conv8 = batchnorm_for_conv(conv8)
         hidden8 = tf.nn.relu(conv8)
         hidden8 = tf.nn.dropout(hidden8, keep_prob[7])
 
@@ -202,12 +251,12 @@ with graph.as_default():
         reshape = tf.reshape(pool4, [shape[0], shape[1]*shape[2]*shape[3]])
         
         hidden9 = tf.matmul(reshape, fc_weights[0]) + fc_biases[0]
-        hidden9 = batchnorm(hidden9, 900)
+        hidden9 = batchnorm_for_affine(hidden9)
         hidden9 = tf.nn.relu(hidden9)
         hidden9 = tf.nn.dropout(hidden9, keep_prob[8])
 
         hidden10 = tf.matmul(hidden9, fc_weights[1]) + fc_biases[1]
-        hidden10 = batchnorm(hidden10, 200)
+        hidden10 = batchnorm_for_affine(hidden10)
         hidden10 = tf.nn.relu(hidden10)
         hidden10 = tf.nn.dropout(hidden10, keep_prob[9])
 
@@ -215,7 +264,7 @@ with graph.as_default():
         result = tf.matmul(hidden10, softmax_weights) + softmax_biases
 
         return result
-
+        
     if(args["test_mode"] <= 0):
         # Training loss and pred computation.
         logits = model(tf_train_dataset)
@@ -238,6 +287,7 @@ with graph.as_default():
 
     else:
         test_prediction = tf.nn.softmax(model(tf_test_dataset))
+        saver = tf.train.Saver()
 
 # running stage
 num_epochs = 10
@@ -308,6 +358,8 @@ with tf.Session(graph=graph) as session:
                     else:
                         print('[INFO] you chose not to save model')
     else:
-        print('[INFO] test prediction: mostlikely to be %s' %np.argmax(test_prediction.eval(session=session)))
+        print('[INFO] test prediction: mostlikely to be %s' %np.argmax(test_prediction.eval(session=session), axis=1))
+        #pred = session.run(tf.arg_max(tf.nn.softmax(model(testData[0].reshape((1, 32, 32, 8)))), 1))
+        #print(pred)
 end = clock()
 print('[INFO] total time used: %f' %(end - begin))
