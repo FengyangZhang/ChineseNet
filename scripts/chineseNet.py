@@ -1,9 +1,12 @@
 import tensorflow as tf
 import numpy as np
+import os
+import re
 import argparse
 from PIL import Image
 from time import clock
 import tables
+from img2txt import img2directMap
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
@@ -92,17 +95,29 @@ if(args["test_mode"] <= 0):
 else:
     print("[INFO] using single image test mode!")
     print("[INFO] loading features...")
-    data_file = tables.open_file(data_path, mode='r')
-    testData = data_file.root.trainData[202]
-    testData = testData.reshape(
-                    (-1, num_channels, image_height, image_width)).transpose(0,2,3,1).astype(np.float32)
-    testData = testData / 255
-    label_file = tables.open_file(label_path, mode='r')
-    testLabel = label_file.root.trainLabel[202]
+    #data_file = tables.open_file(data_path, mode='r')
+    #testData = data_file.root.trainData[202]
+    #testData = testData.reshape(
+    #                (-1, num_channels, image_height, image_width)).transpose(0,2,3,1).astype(np.float32)
+    #testData = testData / 255
+    #label_file = tables.open_file(label_path, mode='r')
+    #testLabel = label_file.root.trainLabel[202]
     #print('the tested image is a %d' %testLabel)
-    #testData = np.array(Image.open(args["image_path"]), dtype='float32')
-    #testData = np.reshape(testData, (1, image_height, image_width, num_channels))
-    
+    img_names = os.listdir(args["image_path"])
+    is_jpg = re.compile(r'.+?\.jpg')
+    testData = np.zeros((len(img_names), num_channels, image_height, image_width)).astype(np.float32)
+    testLabels = np.zeros((len(img_names),))
+    i = 0
+    for name in img_names:
+        if(is_jpg.match(name)):
+            data = np.array(Image.open(args["image_path"]+name), dtype='float32')
+            data = img2directMap(data)
+            testData[i] = data
+            class_name = int(name.split('_')[0]) - 1
+            testLabels[i] = class_name
+            i += 1
+    testData, testLabels = reformat(testData, testLabels)
+
 # constructing stage
 graph = tf.Graph()
 
@@ -273,7 +288,7 @@ with graph.as_default():
         test_prediction = tf.nn.softmax(model(tf_test_dataset))
         # Learning rate decay
         global_step = tf.Variable(0, trainable=False)
-        starter_learning_rate = 5e-3
+        starter_learning_rate = 3e-4
         learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
                                                100000, 0.96, staircase=True)
         
@@ -293,7 +308,9 @@ with graph.as_default():
 num_epochs = 10
 num_iters = 919
 
-with tf.Session(graph=graph) as session:
+tfconfig = tf.ConfigProto(allow_soft_placement=True)
+tfconfig.gpu_options.allow_growth=True
+with tf.Session(graph=graph, config=tfconfig) as session:
     begin = clock()
     if(args["load_model"] > 0):
         print('[INFO] restoring model from file...')
@@ -358,8 +375,9 @@ with tf.Session(graph=graph) as session:
                     else:
                         print('[INFO] you chose not to save model')
     else:
-        print('[INFO] test prediction: mostlikely to be %s' %np.argmax(test_prediction.eval(session=session), axis=1))
-        #pred = session.run(tf.arg_max(tf.nn.softmax(model(testData[0].reshape((1, 32, 32, 8)))), 1))
-        #print(pred)
+        print('[INFO] the predicted labels are: %s' %np.argmax(test_prediction.eval(session=session), axis=1))
+        print('[INFO] the actual labels are: %s' %np.argmax(testLabels, axis=1))
+        print('[INFO] the test accuracy is: %.1f%%' %accuracy(test_prediction.eval(session=session), testLabels) )
+
 end = clock()
 print('[INFO] total time used: %f' %(end - begin))

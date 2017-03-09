@@ -9,16 +9,16 @@ import PIL.ImageOps
 import cv2
 
 def main(argv):
-    in_dir = '../data/chars_generated_32/'
-    out_dir = '../data/chars_generated_32/'
+    in_dir = '../data/check_gen/'
+    out_dir = '../data/check_gen/'
     img_names = os.listdir(in_dir)
     is_jpg = re.compile(r'.+?\.jpg')
 # do interpolation to generate (32,32) images
-#    for name in img_names:
-#        if(is_jpg.match(name)):
-#            img = cv2.imread(in_dir + name)
-#            res = cv2.resize(img, (32, 32), interpolation = cv2.INTER_CUBIC)
-#            cv2.imwrite(out_dir + name, res)
+   # for name in img_names:
+   #     if(is_jpg.match(name)):
+   #         img = cv2.imread(in_dir + name)
+   #         res = cv2.resize(img, (32, 32), interpolation = cv2.INTER_CUBIC)
+   #         cv2.imwrite(out_dir + name, res)
 # resize the image
     # for name in img_names:
     #     if(is_jpg.match(name)):

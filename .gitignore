@@ -1,6 +1,8 @@
 Thumbs.db
 data/chars_generated/*
 data/chars_generated_32/*
+data/check/*
+data/test/*
 data/matrices.txt
 data/classes.txt
 !data/chars_generated_32/1.jpg
