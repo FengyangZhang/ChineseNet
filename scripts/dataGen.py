@@ -9,16 +9,16 @@ import PIL.ImageOps
 import cv2
 
 def main(argv):
-    in_dir = '../data/chars_generated_32/'
-    out_dir = '../data/chars_generated_32/'
+    in_dir = '../data/test_temp/'
+    out_dir = '../data/check_gen/'
     img_names = os.listdir(in_dir)
     is_jpg = re.compile(r'.+?\.jpg')
 # do interpolation to generate (32,32) images
-#    for name in img_names:
-#        if(is_jpg.match(name)):
-#            img = cv2.imread(in_dir + name)
-#            res = cv2.resize(img, (32, 32), interpolation = cv2.INTER_CUBIC)
-#            cv2.imwrite(out_dir + name, res)
+   # for name in img_names:
+   #     if(is_jpg.match(name)):
+   #         img = cv2.imread(in_dir + name)
+   #         res = cv2.resize(img, (32, 32), interpolation = cv2.INTER_CUBIC)
+   #         cv2.imwrite(out_dir + name, res)
 # resize the image
     # for name in img_names:
     #     if(is_jpg.match(name)):
@@ -26,16 +26,16 @@ def main(argv):
     #         image = image.resize((48, 48), Image.ANTIALIAS)
     #         image.save(out_dir + name)
 # invert the image
+    # for name in img_names:
+    #     if(is_jpg.match(name)):
+    #         image = Image.open(in_dir + name)
+    #         inverted_image = PIL.ImageOps.invert(image)
+    #         inverted_image.save(in_dir + name)
+# convert to grayscale
    # for name in img_names:
    #     if(is_jpg.match(name)):
-   #         image = Image.open(in_dir + name)
-   #         inverted_image = PIL.ImageOps.invert(image)
-   #         inverted_image.save(out_dir + name)
-# convert to grayscale
-    for name in img_names:
-        if(is_jpg.match(name)):
-            image = Image.open(in_dir + name).convert('L')
-            image.save(in_dir + name)
+   #         image = Image.open(in_dir + name).convert('L')
+   #         image.save(in_dir + name)
 
 # shifting pixels
    # for name in img_names:
@@ -64,5 +64,16 @@ def main(argv):
    #             image_r = image.rotate(i)
    #             image_r.save(out_dir + name[:len(name) - 4] + 'r' + str(i) + '.jpg')
    # print('rotation completed.')
+#threshold
+    for name in img_names:
+        if(is_jpg.match(name)):
+            data = np.array(Image.open(in_dir+name))
+            index = data >=  128
+            data[index] = 255
+            index = data < 128
+            data[index] = 0
+            image = Image.fromarray(data)
+            image.save(in_dir + name)
+
 if __name__ == "__main__":
     main(sys.argv[1:])
