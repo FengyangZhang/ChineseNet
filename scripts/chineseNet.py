@@ -113,7 +113,7 @@ else:
             data = np.array(Image.open(args["image_path"]+name), dtype='float32')
             data = img2directMap(data)
             testData[i] = data
-            class_name = int(name.split('_')[0]) - 1
+            class_name = int(name.split('.')[0].split('_')[0]) - 1
             testLabels[i] = class_name
             i += 1
     testData, testLabels = reformat(testData, testLabels)
@@ -375,9 +375,9 @@ with tf.Session(graph=graph, config=tfconfig) as session:
                     else:
                         print('[INFO] you chose not to save model')
     else:
-        print('[INFO] the predicted labels are: %s' %np.argmax(test_prediction.eval(session=session), axis=1))
+        print('[INFO] the predicted labels are: %s' %np.argsort(test_prediction.eval(session=session), axis=1)[:, -3:][::-1])
         print('[INFO] the actual labels are: %s' %np.argmax(testLabels, axis=1))
-        print('[INFO] the test accuracy is: %.1f%%' %accuracy(test_prediction.eval(session=session), testLabels) )
+        #print('[INFO] the test accuracy is: %.1f%%' %accuracy(test_prediction.eval(session=session), testLabels) )
 
 end = clock()
 print('[INFO] total time used: %f' %(end - begin))
