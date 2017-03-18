@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import os
 import re
+import glob
 import argparse
 from PIL import Image
 from time import clock
@@ -41,7 +42,7 @@ def reformat(dataset, labels):
     dataset = dataset.reshape(
         (-1, num_channels, image_height, image_width)).transpose(0,2,3,1).astype(np.float32)
     dataset = dataset / 255
-    labels = (np.arange(num_labels) == labels[:,None]).astype(np.uint32).reshape((-1, 3755))
+    labels = (np.arange(num_labels) == labels[:,None]).astype(np.uint32).reshape((-1, num_labels))
     return dataset, labels
 
 # shuffle the data and label accordingly
@@ -103,17 +104,19 @@ else:
     #label_file = tables.open_file(label_path, mode='r')
     #testLabel = label_file.root.trainLabel[202]
     #print('the tested image is a %d' %testLabel)
-    img_names = os.listdir(args["image_path"])
+    #img_names = os.listdir(args["image_path"])
+    img_names = glob.glob(args["image_path"] + '*.jpg')
+    print('[INFO] number of test images: %d' %len(img_names))
     is_jpg = re.compile(r'.+?\.jpg')
     testData = np.zeros((len(img_names), num_channels, image_height, image_width)).astype(np.float32)
     testLabels = np.zeros((len(img_names),))
     i = 0
     for name in img_names:
         if(is_jpg.match(name)):
-            data = np.array(Image.open(args["image_path"]+name), dtype='float32')
+            data = np.array(Image.open(name), dtype='float32')
             data = img2directMap(data)
             testData[i] = data
-            class_name = int(name.split('.')[0].split('_')[0]) - 1
+            class_name = int(name.split('/')[-1].split('.')[0].split('_')[0]) - 1
             testLabels[i] = class_name
             i += 1
     testData, testLabels = reformat(testData, testLabels)
