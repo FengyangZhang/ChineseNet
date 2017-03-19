@@ -9,4 +9,5 @@ data/classes.txt
 !data/chars_generated_32/1.jpg
 *.hdf5
 *.out
+*.pyc
 .DS_Store
