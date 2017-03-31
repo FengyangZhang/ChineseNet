@@ -42,15 +42,15 @@ class CCBReader:
 			f.seek(address)
 			s = f.read(self.img_size)
 			img_array = np.fromstring(s, dtype='<B').reshape((self.img_height, self.img_width))
-			plt.imshow(img_array, cmap='gray')
-			plt.gca().axis('off')
-			plt.show()
+			# plt.imshow(img_array, cmap='gray')
+			# plt.gca().axis('off')
+			# plt.show()
 			return img_array
 
 	def getCharLabelnAddress(self, address):
 		with open(self.src, 'rb') as f:
 			f.seek(address)
-			label = binascii.hexlify(f.read(self.label_length))
+			label = struct.unpack('H', f.read(self.label_length))
 			print("[INFO] The char label(code) is %s(in little-endian)" %label)
 			img_address = struct.unpack('<I', f.read(self.address_length))[0]
 			# print("[INFO] The char address is %d" %img_address)
@@ -66,4 +66,4 @@ class CCBReader:
 								* offset
 			img_address, _ = self.getCharLabelnAddress(label_address)
 			print("[INFO] The image is being displayed.")
-			self.getCharImg(img_address)
+			return self.getCharImg(img_address)

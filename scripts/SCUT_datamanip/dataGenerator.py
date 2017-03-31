@@ -1,12 +1,6 @@
-import sys
-import getopt
-from PIL import Image, ImageFilter, ImageChops
 import numpy as np
-import os
-import re
-import PIL.ImageOps
-import cv2
-import glob
+import scipy.ndimage
+import scipy.misc
 
 class dataGenerator:
   in_dir = None
@@ -15,21 +9,12 @@ class dataGenerator:
 
   def __init__(self, in_dir, out_dir):
     self.in_dir = in_dir
-    self.out_dir = out_dir
-    self.img_names = glob.glob(in_dir + '*.jpg')      
-    if(len(self.img_names) == 0):
-      print("[WARNING] No picture in the directory!")
-    else:
-      for i in range(len(self.img_names)):
-        self.img_names[i] = self.img_names[i].split('/')[-1]
+    self.out_dir = out_dir    
 
   # do interpolation to generate (32,32) images
-  def interpolation():
-    for name in img_names:
-      img = cv2.imread(self.in_dir + name)
-      res = cv2.resize(img, (32, 32), interpolation = cv2.INTER_CUBIC)
-      cv2.imwrite(self.out_dir + name, res)
-
+  def interpolation(img_array):
+    return scipy.misc.imresize(img_array, (32, 32), interp='bilinear')
+    
   # resize the image
   def resize():
     for name in img_names:
