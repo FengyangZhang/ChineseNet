@@ -51,7 +51,7 @@ class CCBReader:
 		with open(self.src, 'rb') as f:
 			f.seek(address)
 			label = struct.unpack('H', f.read(self.label_length))
-			print("[INFO] The char label(code) is %s(in little-endian)" %label)
+			# print("[INFO] The char label(code) is %s(in little-endian)" %label)
 			img_address = struct.unpack('<I', f.read(self.address_length))[0]
 			# print("[INFO] The char address is %d" %img_address)
 			return img_address, label
@@ -65,5 +65,4 @@ class CCBReader:
 			label_address = self.table_offset + (self.label_length + self.address_length) \
 								* offset
 			img_address, _ = self.getCharLabelnAddress(label_address)
-			print("[INFO] The image is being displayed.")
 			return self.getCharImg(img_address)

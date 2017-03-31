@@ -9,12 +9,14 @@ import re
 from CCBReader import CCBReader
 import scipy.ndimage
 import math
+import tables
+
 def main(argv):
     reader = CCBReader("./000.ccb")
     reader.printBasicInfo()
 
     data_path = 'trainData.hdf5'
-    data_file = tables.open_file(data_path, mode='a')
+    data_file = tables.open_file(data_path, mode='w')
     filters = tables.Filters(complevel=5, complib='blosc')
     trainData = data_file.create_earray(data_file.root, 'trainData',
                                        tables.Atom.from_dtype(np.dtype('uint8')), 
@@ -22,7 +24,7 @@ def main(argv):
                                        filters=filters)
     
     label_path = 'trainLabel.hdf5'
-    label_file = tables.open_file(label_path, mode='a')
+    label_file = tables.open_file(label_path, mode='w')
     filters = tables.Filters(complevel=5, complib='blosc')
     trainLabel = label_file.create_earray(label_file.root, 'trainLabel',
                                        tables.Atom.from_dtype(np.dtype('uint32')), 
@@ -33,9 +35,10 @@ def main(argv):
         if(i % 1000 == 0):
             print("processing %dth image..." %i)
         img_array = reader.lookUpImgByOffset(i)
+        img_array = interpolation(img_array)
         img_array = invert(img_array)
         directMap = img2directMap(img_array)
-        trainData.append(img_mat.reshape((1,8192)))
+        trainData.append(directMap.reshape((1,8192)))
         trainLabel.append(np.array(i).reshape(1,1))
     data_file.close()
     label_file.close()
